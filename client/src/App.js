@@ -340,33 +340,84 @@ function activityCompletionForScope(planRows, comp, scopeTab) {
   return { total, done };
 }
 
-function DashboardBreakdownBars({ items, accent, showFinishedDate }) {
-  if (!items?.length) {
+function DashboardTowerBreakdown({ towerGroups, accent, showFinishedDate }) {
+  if (!towerGroups?.length) {
     return <p style={{ margin: 0, fontSize: 12, color: T.muted, lineHeight: 1.5 }}>No programme activities yet.</p>;
   }
-  return items.map((row) => (
-    <div key={row.label} style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{row.label}</span>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: `rgba(${accent},0.95)` }}>{row.pct}%</span>
-          <span style={{ fontSize: 10, color: T.muted }}>{row.done}/{row.total}</span>
-          {showFinishedDate && row.lastFinishedDate && (
-            <span style={{ fontSize: 10, color: T.muted, fontWeight: 600 }}>Finished {row.lastFinishedDate}</span>
-          )}
+  return towerGroups.map((tower) => (
+    <div
+      key={tower.label}
+      style={{
+        marginBottom: 14,
+        padding: '12px 12px 10px',
+        borderRadius: 12,
+        border: '1px solid rgba(26,26,46,0.07)',
+        background: 'rgba(26,26,46,0.02)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: T.text, letterSpacing: '0.02em' }}>{tower.label}</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: `rgba(${accent},0.95)` }}>{tower.pct}%</span>
+          <span style={{ fontSize: 10, color: T.muted }}>{tower.done}/{tower.total}</span>
         </div>
       </div>
-      <div style={{ height: 6, borderRadius: 3, background: 'rgba(26,26,46,0.07)', overflow: 'hidden' }}>
+      <div style={{ height: 5, borderRadius: 3, background: 'rgba(26,26,46,0.07)', overflow: 'hidden', marginBottom: tower.levels?.length ? 10 : 0 }}>
         <div
           style={{
             height: '100%',
             borderRadius: 3,
-            width: `${row.pct}%`,
+            width: `${tower.pct}%`,
             background: `rgba(${accent},0.75)`,
             transition: 'width 0.4s ease',
           }}
         />
       </div>
+      {tower.levels?.length ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 4, borderLeft: `3px solid rgba(${accent},0.22)` }}>
+          {tower.levels.map((floor) => (
+            <div key={floor.label}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    width: 26,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: `rgba(${accent},0.9)`,
+                    textAlign: 'center',
+                    letterSpacing: '0.04em',
+                  }}
+                  title={floor.floorLabel}
+                >
+                  {floor.floorShort}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: T.text }}>{floor.floorLabel}</span>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: `rgba(${accent},0.95)` }}>{floor.pct}%</span>
+                  <span style={{ fontSize: 10, color: T.muted }}>{floor.done}/{floor.total}</span>
+                  {showFinishedDate && floor.lastFinishedDate && (
+                    <span style={{ fontSize: 10, color: T.muted, fontWeight: 600 }}>Finished {floor.lastFinishedDate}</span>
+                  )}
+                </div>
+              </div>
+              <div style={{ marginLeft: 34, height: 4, borderRadius: 2, background: 'rgba(26,26,46,0.06)', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    borderRadius: 2,
+                    width: `${floor.pct}%`,
+                    background: `rgba(${accent},0.62)`,
+                    transition: 'width 0.4s ease',
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.45 }}>No floor programme on this tower yet.</p>
+      )}
     </div>
   ));
 }
@@ -1872,18 +1923,15 @@ function DashPage({gw,int_s,project_s,comp,isAdmin,isBoardViewer,userTabs,onActi
       }}>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:'uppercase',letterSpacing:'0.16em',marginBottom:4}}>By tower &amp; level</div>
-          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Completion by level</div>
+          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Completion by tower</div>
           <div style={{fontSize:11,color:T.muted,marginTop:4,lineHeight:1.45}}>
-            Each tower level rolls up all zones on that floor (e.g. T1 A/B/C on floor 1 from labels like T1 A 1). 100% when every activity on the level is ticked; the finish date is the last programme tick on that level.
+            Each tower shows floors from ground up (GF, 1st, 2nd, …). Floor progress rolls up all zones on that level (e.g. T1 A/B/C on floor 1). 100% when every activity on the level is ticked; the finish date is the last programme tick on that level.
           </div>
         </div>
         {sectionBreakdowns.map((sec, idx)=>(
           <div key={sec.key} style={{marginBottom:idx<sectionBreakdowns.length-1?18:0,paddingBottom:idx<sectionBreakdowns.length-1?14:0,borderBottom:idx<sectionBreakdowns.length-1?`1px solid rgba(26,26,46,0.07)`:'none'}}>
             <div style={{fontSize:11,fontWeight:800,color:`rgba(${sec.accent},0.92)`,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>{sec.label}</div>
-            <div style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>By tower</div>
-            <DashboardBreakdownBars items={sec.towers} accent={sec.accent}/>
-            <div style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:'uppercase',letterSpacing:'0.1em',margin:'12px 0 6px'}}>By level</div>
-            <DashboardBreakdownBars items={sec.levels} accent={sec.accent} showFinishedDate/>
+            <DashboardTowerBreakdown towerGroups={sec.towerGroups} accent={sec.accent} showFinishedDate/>
           </div>
         ))}
       </section>
