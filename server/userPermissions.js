@@ -24,9 +24,9 @@ function isIntSubbieRole(role) {
   return role === 'int_subbie';
 }
 
-/** Update / completions POST — admin + site + modules-editor (modules scope). */
+/** Update / completions POST — admin + modules-editor (site is view-only). */
 function canTickCompletions(role) {
-  return isAdminRole(role) || isSiteEditorRole(role) || isModulesEditorRole(role);
+  return isAdminRole(role) || isModulesEditorRole(role);
 }
 
 /** Zone/drawing upload/programme screen mutations — admin only. */

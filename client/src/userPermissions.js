@@ -44,9 +44,9 @@ export function isScopeLocked(role) {
   return isModulesEditor(role);
 }
 
-/** Update / tick-offs — admin + site + modules-editor. */
+/** Update / tick-offs — admin + modules-editor (site is view-only). */
 export function canTick(role) {
-  return isAdmin(role) || isSiteEditor(role) || isModulesEditor(role);
+  return isAdmin(role) || isModulesEditor(role);
 }
 
 /** Module Handover setup (upload drawing, draw modules, set stages) — admin + site. Board views only. */
@@ -77,9 +77,9 @@ export function bottomNavItemsForRole(role) {
     return [plan];
   }
 
-  /** Site: view Programme (incl. Project programme XML list); structural edit remains admin-only in ProgrammePage. */
+  /** Site: Dash, Ahead, Plan, Zones, Modules — no Update ticking or Programme editor. */
   if (isSiteEditor(role)) {
-    return [dash, upd, ahead, plan, zones, prog, mod];
+    return [dash, ahead, plan, zones, mod];
   }
 
   if (isGwSubbie(role) || isIntSubbie(role)) {
