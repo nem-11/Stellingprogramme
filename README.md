@@ -22,13 +22,13 @@ npm run dev
 | User | Username | Password | Role |
 |------|----------|----------|------|
 | Nem | admin | 119hs | Admin |
-| Site Team | site | site123 | Editor |
+| Site Team | site | site123 | View only (Dash, Ahead, Plan, Zones, Modules) |
 | DBs | DBs | ground1 | GW Viewer |
 | IKEW | IKEW | Ikew1 | INT Viewer |
 | Board | board | board119 | Viewer |
 | 119HS (shared) | 119hs | site119 | Programme view only |
 
-The **119hs** login is for handing out to trades on site: **Plan view only**, all programme tabs, no ticking or editing.
+The **site** login is view-only: Dash, Ahead, Plan, Zones, and Modules — no Update ticking, Programme editor, or schedule shifting. The **119hs** login is Plan view only for handing out to trades.
 
 ## Features
 
