@@ -30,10 +30,17 @@ test.describe('3-Week Look-ahead', () => {
 });
 
 test.describe('Daily Update', () => {
-  test('Update view loads for site team', async ({ page }) => {
-    await loginAs(page, 'site');
+  test('Update view loads for admin', async ({ page }) => {
+    await loginAs(page, 'admin');
     await page.click('button:has-text("✓Update")');
     await page.waitForTimeout(1500);
     expect(await hasApiError(page)).toBe(false);
+  });
+
+  test('site team has no Update nav', async ({ page }) => {
+    await loginAs(page, 'site');
+    await page.waitForTimeout(1000);
+    await expect(page.locator('button:has-text("✓Update")')).not.toBeVisible();
+    await expect(page.locator('button:has-text("◎Programme")')).not.toBeVisible();
   });
 });
