@@ -123,6 +123,8 @@ export const getModuleBulkSchedulePreview=(opts={})=>{
 export const applyModuleBulkSchedule=(body)=>api('POST','/api/admin/modules/bulk-schedule-apply',body||{});
 export const previewModuleL1L5Order=(body={})=>api('POST','/api/admin/modules/apply-l1-l5-order',{...body,dryRun:true});
 export const applyModuleL1L5Order=(body={})=>api('POST','/api/admin/modules/apply-l1-l5-order',body);
+export const previewModuleAirSound=()=>api('GET','/api/admin/modules/air-sound-preview');
+export const applyModuleAirSound=(body={})=>api('POST','/api/admin/modules/apply-air-sound',body);
 export const scheduleZoneFromTemplateStart=(zoneId,body)=>api('POST',`/api/zones/${zoneId}/schedule-from-template-start`,body);
 export const getPlanProgramme=()=>api('GET','/api/plan/programme');
 export const getPlanProgrammeFullExport=()=>api('GET','/api/plan/programme?full=1');

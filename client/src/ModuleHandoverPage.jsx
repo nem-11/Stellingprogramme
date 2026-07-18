@@ -113,6 +113,8 @@ export default function ModuleHandoverPage({ canManage = false }) {
   const [completionProgress, setCompletionProgress] = useState(null);
   const [programmePreview, setProgrammePreview] = useState(null);
   const [programmeApplyBusy, setProgrammeApplyBusy] = useState(false);
+  const [airSoundPreview, setAirSoundPreview] = useState(null);
+  const [airSoundApplyBusy, setAirSoundApplyBusy] = useState(false);
 
   const wrapRef = useRef(null);
   const viewportRef = useRef(null);
@@ -238,6 +240,53 @@ export default function ModuleHandoverPage({ canManage = false }) {
   useEffect(() => {
     void reloadProgrammeOrderPreview();
   }, [reloadProgrammeOrderPreview]);
+
+  const reloadAirSoundPreview = useCallback(() => {
+    if (!canManage) {
+      setAirSoundPreview(null);
+      return Promise.resolve(null);
+    }
+    return api
+      .previewModuleAirSound()
+      .then((out) => {
+        setAirSoundPreview(out && !out.error ? out : null);
+        return out;
+      })
+      .catch(() => {
+        setAirSoundPreview(null);
+        return null;
+      });
+  }, [canManage]);
+
+  useEffect(() => {
+    void reloadAirSoundPreview();
+  }, [reloadAirSoundPreview]);
+
+  async function applyAirSoundProgramme() {
+    const total = airSoundPreview?.total_items || 0;
+    if (
+      !window.confirm(
+        `Add W/C Air and Sound to ${total} module slot(s) across 6 weeks (Jul–Sep 2026)?\n\nEach module gets one box on the Monday of its week. Existing matching entries are skipped.`
+      )
+    ) {
+      return;
+    }
+    setAirSoundApplyBusy(true);
+    setErr('');
+    try {
+      const out = await api.applyModuleAirSound({});
+      if (out?.error) throw new Error(out.error);
+      const added = Number(out.added) || 0;
+      const skipped = Number(out.skipped) || 0;
+      const empty = Array.isArray(out.empty_weeks) && out.empty_weeks.length ? `\n\nNo zones matched: ${out.empty_weeks.join(', ')}` : '';
+      window.alert(`Added ${added} W/C Air and Sound item(s).${skipped ? ` Skipped ${skipped} duplicate(s).` : ''}${empty}`);
+      await Promise.all([reloadAirSoundPreview(), reloadCompletionProgress(), reloadProgrammeItems(drawingId)]);
+    } catch (e) {
+      setErr(e?.message || 'Could not apply W/C Air and Sound');
+    } finally {
+      setAirSoundApplyBusy(false);
+    }
+  }
 
   async function applyL1L5Programme() {
     const total = programmePreview?.total || programmePreview?.matched;
@@ -1366,6 +1415,56 @@ export default function ModuleHandoverPage({ canManage = false }) {
                     type="button"
                     disabled={programmeApplyBusy}
                     onClick={() => void reloadProgrammeOrderPreview()}
+                    style={{ ...S.btn, padding: '8px 12px', fontSize: 12 }}
+                  >
+                    Refresh preview
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {canManage && (
+              <div style={{ ...card, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  W/C Air and Sound
+                </div>
+                <div style={{ fontSize: 11, color: T.faint, marginTop: 4, lineHeight: 1.45 }}>
+                  One-off module programme entries — one coloured box on the Monday of each week (w/c 20 Jul, 27 Jul, 10 Aug, 24 Aug smoke shafts, 31 Aug, 7 Sep T3).
+                </div>
+                <div style={{ marginTop: 10, fontSize: 12, color: T.text, lineHeight: 1.5 }}>
+                  {airSoundPreview?.total_items ? (
+                    <>
+                      <strong>{airSoundPreview.total_items}</strong> one-day items across{' '}
+                      {airSoundPreview.weeks?.filter((w) => w.zone_count > 0).length || 0} week(s)
+                    </>
+                  ) : airSoundPreview === null ? (
+                    <span style={{ color: T.muted }}>Could not load preview.</span>
+                  ) : (
+                    <span style={{ color: T.muted }}>No modules matched — check module zone names and towers.</span>
+                  )}
+                </div>
+                {airSoundPreview?.weeks?.length > 0 && (
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 11, color: T.muted, lineHeight: 1.45 }}>
+                    {airSoundPreview.weeks.map((w) => (
+                      <li key={w.week_start}>
+                        {w.label}: {w.zone_count} module(s) · {w.week_start}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    disabled={airSoundApplyBusy || !airSoundPreview?.total_items}
+                    onClick={() => void applyAirSoundProgramme()}
+                    style={{ ...S.btn, ...S.btnPrimary, padding: '8px 14px', fontSize: 12, opacity: airSoundApplyBusy ? 0.65 : 1 }}
+                  >
+                    {airSoundApplyBusy ? 'Applying…' : 'Apply W/C Air and Sound'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={airSoundApplyBusy}
+                    onClick={() => void reloadAirSoundPreview()}
                     style={{ ...S.btn, padding: '8px 12px', fontSize: 12 }}
                   >
                     Refresh preview

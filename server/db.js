@@ -9,6 +9,7 @@ const pw = require('./planWorkingDays');
 const { resolveDatabasePath } = require('./databasePath');
 const { DEFAULT_PROGRAMME_TEMPLATES } = require('./defaultTemplates');
 const mbs = require('./moduleBulkSchedule');
+const masm = require('./moduleAirSoundSchedule');
 
 const GW_NAMES = [
   'Pile Mat',
@@ -3033,6 +3034,85 @@ module.exports = {
       today,
       sequence: mbs.MODULE_COMPLETION_SEQUENCE,
       counts,
+    };
+  },
+
+  getModuleAirSoundPreview() {
+    return masm.buildPreview(all);
+  },
+
+  /** One-off W/C Air and Sound — single Monday cell per module per scheduled week. */
+  applyModuleAirSoundOneOffs(opts = {}) {
+    const dryRun = opts.dryRun === true;
+    const preview = masm.buildPreview(all);
+    if (!preview.total_items && preview.weeks.every((w) => w.zone_count === 0)) {
+      return { error: 'No module zones matched the W/C Air and Sound schedule', preview };
+    }
+
+    try {
+      runNoSave('INSERT OR IGNORE INTO activities (name,type) VALUES (?,?)', [
+        masm.ACTIVITY_NAME,
+        'module_programme',
+      ]);
+    } catch (_) {}
+    const act = get('SELECT id FROM activities WHERE lower(name)=lower(?)', [masm.ACTIVITY_NAME]);
+    if (!act) return { error: 'Could not create W/C Air and Sound activity' };
+
+    let added = 0;
+    let skipped = 0;
+    const errors = [];
+    const emptyWeeks = [];
+
+    for (const week of preview.weeks) {
+      if (!week.zone_count) emptyWeeks.push(week.label);
+      for (const z of week.zones) {
+        const zoneId = Number(z.zone_id);
+        const existing = get(
+          `SELECT pi.id FROM programme_items pi
+           WHERE pi.zone_id=? AND pi.activity_id=? AND pi.start_date=?`,
+          [zoneId, act.id, week.week_start]
+        );
+        if (existing) {
+          skipped += 1;
+          continue;
+        }
+        if (dryRun) {
+          added += 1;
+          continue;
+        }
+        try {
+          module.exports.addProgrammeItem(
+            zoneId,
+            act.id,
+            week.week_start,
+            week.week_start,
+            'planned',
+            week.label,
+            'day'
+          );
+          added += 1;
+        } catch (e) {
+          errors.push({
+            zone_id: zoneId,
+            tower: z.tower,
+            name: z.name,
+            week: week.week_start,
+            error: e.message || String(e),
+          });
+        }
+      }
+    }
+    if (!dryRun) save();
+
+    return {
+      ok: true,
+      dry_run: dryRun,
+      activity: masm.ACTIVITY_NAME,
+      added,
+      skipped,
+      empty_weeks: emptyWeeks,
+      errors,
+      preview,
     };
   },
 };

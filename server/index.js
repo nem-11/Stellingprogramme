@@ -522,6 +522,15 @@ app.post('/api/admin/modules/apply-explicit-order', auth, admin, (req, res) => {
   if (out.error) return res.status(400).json(out);
   res.json(out);
 });
+app.get('/api/admin/modules/air-sound-preview', auth, admin, (req, res) => {
+  res.json(db.getModuleAirSoundPreview());
+});
+app.post('/api/admin/modules/apply-air-sound', auth, admin, (req, res) => {
+  const body = req.body || {};
+  const out = db.applyModuleAirSoundOneOffs({ dryRun: body.dryRun === true });
+  if (out.error) return res.status(400).json(out);
+  res.json(out);
+});
 app.post('/api/zones/:zoneId/schedule-from-template-start', auth, admin, (req, res) => {
   const zoneId = Number(req.params.zoneId);
   const { template_id, start_date, start_stage_idx, calendar } = req.body || {};
