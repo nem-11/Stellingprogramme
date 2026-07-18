@@ -88,6 +88,32 @@ export function floorLabelFromRank(rank) {
   return '—';
 }
 
+/** Compact floor label for tower breakdown rows (GF, 1, 2, …). */
+export function floorShortLabelFromRank(rank) {
+  if (rank === -1) return 'B';
+  if (rank === 0) return 'GF';
+  if (rank >= 1 && rank < UNKNOWN_FLOOR) return String(rank);
+  return '—';
+}
+
+const TOWER_ORDER = ['T1', 'T2', 'T3', 'T4'];
+
+function towerSortKey(tower) {
+  const t = String(tower || '').trim().toUpperCase();
+  const idx = TOWER_ORDER.indexOf(t);
+  if (idx >= 0) return idx;
+  const num = t.match(/T(\d+)/i);
+  if (num) return TOWER_ORDER.length + parseInt(num[1], 10);
+  return TOWER_ORDER.length + 100 + t.charCodeAt(0);
+}
+
+function sortTowers(a, b) {
+  const ka = towerSortKey(a.label ?? a);
+  const kb = towerSortKey(b.label ?? b);
+  if (ka !== kb) return ka - kb;
+  return String(a.label ?? a).localeCompare(String(b.label ?? b), undefined, { numeric: true, sensitivity: 'base' });
+}
+
 /** Ground → numeric floors → basement/other. */
 export function floorSortRank(floor) {
   const s = String(floor || '').toLowerCase().trim();
@@ -258,17 +284,29 @@ export function programmeCompletionBreakdown(planRows, comp, rowMatches) {
       base.done === base.total && base.total > 0
         ? levelCompletionForRows(e.rows, comp, null).lastFinishedDate
         : null;
-    return { label: base.label, total: base.total, done: base.done, pct: base.pct, lastFinishedDate };
+    return {
+      label: base.label,
+      tower: e.tower,
+      rank: e.rank,
+      floorLabel: floorLabelFromRank(e.rank),
+      floorShort: floorShortLabelFromRank(e.rank),
+      total: base.total,
+      done: base.done,
+      pct: base.pct,
+      lastFinishedDate,
+    };
   };
-  const towerSort = (a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
-  return {
-    towers: [...byTower.values()].map(mapPct).sort(towerSort),
-    levels: [...byLevel.values()].map(mapLevel).sort((a, b) => {
-      const tw = a.label.split(' · ')[0].localeCompare(b.label.split(' · ')[0], undefined, { numeric: true, sensitivity: 'base' });
-      if (tw !== 0) return tw;
-      return (a.rank ?? 999) - (b.rank ?? 999) || a.label.localeCompare(b.label);
-    }),
-  };
+  const towers = [...byTower.values()].map(mapPct).sort(sortTowers);
+  const levels = [...byLevel.values()].map(mapLevel).sort((a, b) => {
+    const tw = sortTowers({ label: a.tower }, { label: b.tower });
+    if (tw !== 0) return tw;
+    return (a.rank ?? 999) - (b.rank ?? 999) || a.label.localeCompare(b.label);
+  });
+  const towerGroups = towers.map((tower) => ({
+    ...tower,
+    levels: levels.filter((lv) => lv.tower === tower.label),
+  }));
+  return { towers, levels, towerGroups };
 }
 
 /** @deprecated Use drawingLevelCompletionAsOf — kept for compatibility. */
